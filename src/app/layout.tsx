@@ -5,6 +5,7 @@ import "@fontsource/archivo/600.css";
 import "@fontsource/archivo/800.css";
 import "@fontsource/permanent-marker/400.css";
 import "./globals.css";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { MusicProvider, MusicToggle } from "@/components/music";
 import { event } from "@/data/event";
 
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <MusicToggle />
         </MusicProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
