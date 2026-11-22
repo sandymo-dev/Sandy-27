@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { isAnimalId, type AnimalId } from "@/components/animals";
 import { homeFor } from "@/lib/access";
+import { notifyHost } from "@/lib/email";
 import { findGuestByName, firstFreeAnimal, getGuest, takenAnimals, toPublicGuest } from "@/lib/guests";
 import {
   clearSession,
@@ -119,6 +121,15 @@ export async function saveRsvp(input: RsvpInput): Promise<SaveResult> {
     console.error(e);
     return { ok: false, error: "Couldn't save your answer. Try again in a minute." };
   }
+
+  // Tell the host by email. Runs after the guest's response, so it never slows them down.
+  after(async () => {
+    try {
+      await notifyHost(guest.displayName, rsvp, previous, await listRsvps());
+    } catch (e) {
+      console.error("Host notification failed:", e);
+    }
+  });
 
   revalidatePath("/party");
   revalidatePath("/rsvp");

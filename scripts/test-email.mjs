@@ -4,11 +4,14 @@
 //   npm run test-email                     -> sends to the default address below
 //   npm run test-email -- friend@x.com     -> sends to another address
 //   npm run test-email -- --preview        -> no email; writes .data/reminder-preview.html
+//   npm run test-email -- --notify         -> the "Budi is IN" email you get when someone RSVPs
+//   npm run test-email -- --notify --preview
 //
 // Reads GMAIL_USER, GMAIL_APP_PASSWORD, REMINDER_FROM_NAME and SITE_URL from .env.local.
 import { mkdir, writeFile } from "node:fs/promises";
 import nodemailer from "nodemailer";
 import { event } from "../src/data/event.ts";
+import { notifyEmail } from "../src/lib/notify-email.ts";
 import { reminderEmail } from "../src/lib/reminder-email.ts";
 
 const DEFAULT_TO = "sandymoh99@gmail.com";
@@ -19,12 +22,28 @@ const preview = args.includes("--preview");
 const to = args.find((a) => !a.startsWith("--")) || DEFAULT_TO;
 const siteUrl = process.env.SITE_URL || "http://localhost:3000";
 
-const { subject, html, text } = reminderEmail(event, GUEST_NAME, siteUrl);
+// --notify sends the "someone RSVP'd" email you get as host, with a fake guest.
+const notify = args.includes("--notify");
+const sample = {
+  guestId: "budi", status: "yes", plusOne: true, plusOneName: "Rina", plusOnePhotoUrl: null,
+  plusOneAnimal: "panda", food: "Keju, Jalapeño", foodUnsure: false, email: null,
+  remindedAt: null, updatedAt: new Date().toISOString(),
+};
+const { subject, html, text } = notify
+  ? notifyEmail({
+      guestName: "Budi",
+      rsvp: sample,
+      previous: { ...sample, status: "maybe", plusOne: false, plusOneName: null, food: null },
+      headcount: { yes: 7, plusOnes: 2, maybe: 3, no: 1 },
+      siteUrl,
+    })
+  : reminderEmail(event, GUEST_NAME, siteUrl);
 
 if (preview) {
+  const file = `.data/${notify ? "notify" : "reminder"}-preview.html`;
   await mkdir(".data", { recursive: true });
-  await writeFile(".data/reminder-preview.html", html);
-  console.log("Wrote .data/reminder-preview.html (open it in your browser)");
+  await writeFile(file, html);
+  console.log(`Wrote ${file} (open it in your browser)`);
   process.exit(0);
 }
 
