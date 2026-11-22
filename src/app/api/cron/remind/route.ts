@@ -3,9 +3,14 @@ import { emailConfigured, sendReminder } from "@/lib/email";
 import { getGuest } from "@/lib/guests";
 import { listRsvps, markReminded } from "@/lib/store";
 
+/** Don't email the same person twice within this window (guards against duplicate cron calls). */
+const COOLDOWN_MS = 12 * 60 * 60 * 1000;
+
 /**
- * Emails everyone still on "Not sure yet". Vercel Cron calls this
- * (see vercel.json). You can also trigger it by hand:
+ * Emails everyone still on "Not sure yet". Vercel Cron calls this three times
+ * (see vercel.json, times in UTC):
+ *   Fri 27 Nov 18:00 WIB, Sat 28 Nov 12:00 WIB, Sun 29 Nov 12:00 WIB.
+ * You can also trigger it by hand:
  *   curl -H "Authorization: Bearer $CRON_SECRET" https://your-site/api/cron/remind
  */
 export async function GET(request: Request) {
@@ -19,7 +24,13 @@ export async function GET(request: Request) {
   }
   const siteUrl = process.env.SITE_URL ?? new URL(request.url).origin;
 
-  const due = (await listRsvps()).filter((r) => r.status === "maybe" && r.email && !r.remindedAt);
+  const now = Date.now();
+  const due = (await listRsvps()).filter(
+    (r) =>
+      r.status === "maybe" &&
+      r.email &&
+      (!r.remindedAt || now - new Date(r.remindedAt).getTime() > COOLDOWN_MS),
+  );
   const sent: string[] = [];
   const failed: { guestId: string; error: string }[] = [];
 
@@ -33,6 +44,6 @@ export async function GET(request: Request) {
       failed.push({ guestId: r.guestId, error: e instanceof Error ? e.message : String(e) });
     }
   }
-  await markReminded(sent, new Date().toISOString());
+  await markReminded(sent, new Date(now).toISOString());
   return Response.json({ sent: sent.length, failed });
 }

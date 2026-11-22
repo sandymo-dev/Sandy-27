@@ -67,8 +67,10 @@ then until the party, or just keep the invite busy.
    Google shows a 16-letter code once. Copy it.
 3. Set `GMAIL_USER` to your Gmail address and `GMAIL_APP_PASSWORD` to that code.
    `REMINDER_FROM_NAME` is optional and sets the sender name.
-4. `vercel.json` runs the reminder once, on **Friday 27 November at 09:00 WIB**. It emails everyone
-   still on "Not sure yet" who left an email. Each person only gets it once.
+4. `vercel.json` runs the reminder three times: **Friday 27 November at 18:00 WIB**, then
+   **Saturday 28** and **Sunday 29 November at 12:00 WIB** (the schedules in the file are in UTC).
+   Each run emails everyone still on "Not sure yet" who left an email. Once they answer yes or no,
+   the reminders stop. Nobody gets two within 12 hours, even if a run repeats.
    To send it by hand:
    `curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-site/api/cron/remind`
 

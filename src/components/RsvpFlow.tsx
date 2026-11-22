@@ -147,7 +147,7 @@ export function RsvpFlow(props: RsvpFlowProps) {
         <div className="flex items-center gap-3.5 border-[3px] border-dashed border-paper p-4">
           <MailIcon />
           <p className="text-[15px] leading-normal text-mist">
-            A reminder goes to <strong className="text-paper">{email}</strong> before {props.deadlineLabel}.
+            Reminders go to <strong className="text-paper">{email}</strong> before {props.deadlineLabel}.
           </p>
         </div>
         <div className="mt-auto flex flex-col gap-3">
@@ -194,7 +194,7 @@ export function RsvpFlow(props: RsvpFlowProps) {
       {choice === "yes" && (
         <>
           {guest.allowPlusOne && (
-            <section className="flex flex-col gap-3">
+            <section id="crew" className="flex scroll-mt-6 flex-col gap-3">
               <SectionTitle>THE CREW</SectionTitle>
               <div className="grid grid-cols-2 gap-2.5">
                 {[false, true].map((v) => (
