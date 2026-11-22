@@ -10,14 +10,19 @@ import { findGuestByName, firstFreeAnimal, getGuest, takenAnimals, toPublicGuest
 import {
   clearSession,
   getSessionGuestId,
+  makeMagicToken,
   makeMatchToken,
+  readMagicToken,
   readMatchToken,
   setSession,
 } from "@/lib/session";
-import { getRsvp, listRsvps, upsertRsvp } from "@/lib/store";
+import { getRsvp, listAllRsvps, listRsvps, upsertRsvp } from "@/lib/store";
 import type { PublicGuest, Rsvp } from "@/lib/types";
 
-export type LookupResult = { found: true; guest: PublicGuest; token: string } | { found: false };
+export type LookupResult =
+  | { found: true; guest: PublicGuest; token: string }
+  | { found: "magic"; challenge: string }
+  | { found: false };
 
 /** Step 1 of the door: "Is your name on the list?" */
 export async function lookupGuest(name: string): Promise<LookupResult> {
@@ -26,7 +31,26 @@ export async function lookupGuest(name: string): Promise<LookupResult> {
   }
   const guest = findGuestByName(name);
   if (!guest) return { found: false };
+  // Protected names get no match token (and no photo) until the magic word is right.
+  if (guest.magicWord) return { found: "magic", challenge: makeMagicToken(guest.id) };
   return { found: true, guest: toPublicGuest(guest), token: makeMatchToken(guest.id) };
+}
+
+export type MagicResult =
+  | { ok: true; guest: PublicGuest; token: string }
+  | { ok: false; expired: boolean };
+
+/** Step 1½ for protected names: "What is your magic word?" */
+export async function checkMagicWord(challenge: string, word: string): Promise<MagicResult> {
+  const guestId = typeof challenge === "string" ? readMagicToken(challenge) : null;
+  const guest = guestId ? getGuest(guestId) : null;
+  if (!guest?.magicWord) return { ok: false, expired: true };
+  if (typeof word !== "string" || word.trim() !== guest.magicWord) {
+    // Slow down anyone trying to guess.
+    await new Promise((r) => setTimeout(r, 1000));
+    return { ok: false, expired: false };
+  }
+  return { ok: true, guest: toPublicGuest(guest), token: makeMatchToken(guest.id) };
 }
 
 /** Step 2: "Is this you?" -> HELL YEAH. Sets the session and says where to go. */
@@ -91,7 +115,7 @@ export async function saveRsvp(input: RsvpInput): Promise<SaveResult> {
   // One +1 per animal. Keeping the animal you already had is always fine.
   let fallbackAnimal: AnimalId = "cat";
   if (plusOne) {
-    const taken = takenAnimals(await listRsvps(), guest.id);
+    const taken = takenAnimals(await listAllRsvps(), guest.id);
     if (animal && animal !== previous?.plusOneAnimal && taken.includes(animal)) {
       return { ok: false, error: "Someone else's +1 just took that animal. Pick another one." };
     }
@@ -123,7 +147,7 @@ export async function saveRsvp(input: RsvpInput): Promise<SaveResult> {
   }
 
   // Tell the host by email. Runs after the guest's response, so it never slows them down.
-  after(async () => {
+  if (!guest.isHost) after(async () => {
     try {
       await notifyHost(guest.displayName, rsvp, previous, await listRsvps());
     } catch (e) {

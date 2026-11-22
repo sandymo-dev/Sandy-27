@@ -4,7 +4,7 @@ import { Shell } from "@/components/ui";
 import { event } from "@/data/event";
 import { requireGuest } from "@/lib/access";
 import { getGuest, takenAnimals, toPublicGuest } from "@/lib/guests";
-import { listRsvps } from "@/lib/store";
+import { listAllRsvps } from "@/lib/store";
 
 export default function RsvpPage() {
   return (
@@ -16,10 +16,10 @@ export default function RsvpPage() {
 
 async function Rsvp() {
   const { guest, rsvp } = await requireGuest();
-  const all = await listRsvps();
+  const all = await listAllRsvps();
 
   const others = all
-    .filter((r) => r.status === "yes" && r.guestId !== guest.id)
+    .filter((r) => r.status === "yes" && r.guestId !== guest.id && !getGuest(r.guestId)?.isHost)
     .map((r) => ({
       name: getGuest(r.guestId)?.displayName ?? "Someone",
       what: r.food ?? "Not sure yet",

@@ -2,6 +2,7 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getGuest } from "@/lib/guests";
 import type { Rsvp } from "@/lib/types";
 
 /**
@@ -106,7 +107,13 @@ export async function getRsvp(guestId: string): Promise<Rsvp | null> {
   return data ? fromRow(data as Row) : null;
 }
 
+/** Every guest's RSVP. Leaves out the host, who is always in the crowd anyway. */
 export async function listRsvps(): Promise<Rsvp[]> {
+  return (await listAllRsvps()).filter((r) => !getGuest(r.guestId)?.isHost);
+}
+
+/** Every RSVP, the host's included. */
+export async function listAllRsvps(): Promise<Rsvp[]> {
   const sb = supabase();
   if (!sb) return Object.values(await readLocal());
   const { data, error } = await sb.from("rsvps").select("*");

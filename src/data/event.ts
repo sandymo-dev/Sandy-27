@@ -22,7 +22,8 @@ export const event: EventConfig = {
     // Your face cut-out (transparent PNG) for your stickman head. Put it in /public/images/.
     hostPhoto: "/images/me-crop.png",
     hostAnimal: "cat", // used if hostPhoto is null
-    // Your +1, drawn as an angel stickman. Set to null to hide.
+    // Your +1, drawn as an angel stickman. Easier way: log in as yourself and tap
+    // "+ ADD MY +1" on the party page. Once you've RSVP'd, that wins over this.
     plusOne: null, // or 
     // {
     //   name: "Mahes",
@@ -53,9 +54,9 @@ export const event: EventConfig = {
   agenda: [
     {
       label: "OPENING ACT",
-      time: "16:00",
+      time: "16:30",
       title: "NGOPI SORE WITH KOPI MO",
-      description: "Afternoon coffee to warm up.",
+      description: "Afternoon coffee to warm up. Totally optional, come early if you like coffee.",
       showMenuLink: true,
     },
     {

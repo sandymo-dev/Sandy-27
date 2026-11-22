@@ -6,7 +6,7 @@ import { SwitchGuest } from "@/components/SwitchGuest";
 import { Ticket } from "@/components/Ticket";
 import { Bolt, Kicker, Marker, SectionTitle, Shell, btnLight } from "@/components/ui";
 import { event } from "@/data/event";
-import { requireGuest } from "@/lib/access";
+import { hostPlusOne, requireGuest } from "@/lib/access";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { getGuest } from "@/lib/guests";
 import { listRsvps } from "@/lib/store";
@@ -33,8 +33,9 @@ async function Party() {
   const members: CrowdMember[] = [
     { key: "host", name: event.host.name, photo: event.crowd.hostPhoto, animal: event.crowd.hostAnimal },
   ];
-  if (event.crowd.plusOne) {
-    const p = event.crowd.plusOne;
+  const myPlusOne = await hostPlusOne();
+  if (myPlusOne) {
+    const p = myPlusOne;
     members.push({ key: "host-plus-one", name: p.name, photo: p.photo, animal: p.animal, angel: true });
   }
   for (const r of yes) {
@@ -98,6 +99,12 @@ async function Party() {
         <Crowd members={members} />
         <div className="checker-dark -mx-3" />
       </div>
+
+      {guest.isHost && (
+        <Link href="/rsvp#crew" className={`${btnLight} -mt-2`}>
+          {rsvp.status === "yes" && rsvp.plusOne ? "EDIT MY +1" : "+ ADD MY +1"}
+        </Link>
+      )}
 
       <div className="flex flex-col gap-2.5">
         <Ticket compact />

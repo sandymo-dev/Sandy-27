@@ -10,6 +10,10 @@ export type Guest = {
   allowPlusOne: boolean;
   email?: string;
   note?: string;
+  /** Asked at the door after the name matches ("What is your magic word?"). */
+  magicWord?: string;
+  /** The host. Can log in, but never counted in the crowd or headcount. */
+  isHost?: boolean;
 };
 
 export type AgendaItem = {

@@ -51,6 +51,20 @@ export function readMatchToken(token: string): string | null {
   return guestId;
 }
 
+/** Short-lived token: name matched, now waiting for the magic word. */
+export function makeMagicToken(guestId: string): string {
+  const expires = Date.now() + 10 * 60 * 1000;
+  return seal(`magic:${guestId}:${expires}`);
+}
+
+export function readMagicToken(token: string): string | null {
+  const value = unseal(token);
+  if (!value) return null;
+  const [kind, guestId, expires] = value.split(":");
+  if (kind !== "magic" || !guestId || Number(expires) < Date.now()) return null;
+  return guestId;
+}
+
 export async function getSessionGuestId(): Promise<string | null> {
   const store = await cookies();
   const value = unseal(store.get(COOKIE_NAME)?.value);

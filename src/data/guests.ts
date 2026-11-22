@@ -19,10 +19,24 @@ import type { Guest } from "@/lib/types";
  * - allowPlusOne Can they bring someone? false hides the +1 option.
  * - email        Optional. Pre-fills the "remind me later" email field.
  * - note         Optional personal line shown on their invite.
+ * - magicWord    Optional. If set, the door asks "What is your magic word?"
+ *                before letting them in.
+ * - isHost       Marks you. Your RSVP is left out of the crowd and headcount
+ *                (you're already drawn first in line).
  *
  * Replace the two examples below with your real friends.
  */
 export const guests: Guest[] = [
+  {
+    // You, the host. The door asks for the magic word after your name.
+    id: "sandy",
+    displayName: "Sandy",
+    names: ["sandy", "sandymo"],
+    photo: "/images/me-crop.png",
+    allowPlusOne: true,
+    isHost: true,
+    magicWord: "12345",
+  },
   {
     id: "arsa",
     displayName: "Arsa",

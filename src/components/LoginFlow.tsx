@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { confirmGuest, lookupGuest } from "@/app/actions";
+import { checkMagicWord, confirmGuest, lookupGuest } from "@/app/actions";
 import { useMusic } from "@/components/music";
 import { Burger, Head, Marker, Shell, Star, btnDark, btnLight, inputLight } from "@/components/ui";
 import type { PublicGuest } from "@/lib/types";
@@ -14,6 +14,7 @@ gsap.registerPlugin(useGSAP);
 type Stage =
   | { kind: "enter" }
   | { kind: "match"; guest: PublicGuest; token: string }
+  | { kind: "magic"; challenge: string }
   | { kind: "notfound" };
 
 export function LoginFlow() {
@@ -26,6 +27,18 @@ export function LoginFlow() {
         guest={stage.guest}
         token={stage.token}
         onNope={() => {
+          setName("");
+          setStage({ kind: "enter" });
+        }}
+      />
+    );
+  }
+  if (stage.kind === "magic") {
+    return (
+      <MagicWord
+        challenge={stage.challenge}
+        onPass={(guest, token) => setStage({ kind: "match", guest, token })}
+        onBack={() => {
           setName("");
           setStage({ kind: "enter" });
         }}
@@ -66,7 +79,9 @@ function EnterName({
           music.start();
           startTransition(async () => {
             const r = await lookupGuest(name);
-            onResult(r.found ? { kind: "match", guest: r.guest, token: r.token } : { kind: "notfound" });
+            if (r.found === "magic") onResult({ kind: "magic", challenge: r.challenge });
+            else if (r.found) onResult({ kind: "match", guest: r.guest, token: r.token });
+            else onResult({ kind: "notfound" });
           });
         }}
       >
@@ -102,6 +117,83 @@ function EnterName({
       <Marker className="mt-auto text-center text-[17px] text-mist">
         Whatever your friends call you. Name or PSN both work.
       </Marker>
+    </Shell>
+  );
+}
+
+function MagicWord({
+  challenge,
+  onPass,
+  onBack,
+}: {
+  challenge: string;
+  onPass: (guest: PublicGuest, token: string) => void;
+  onBack: () => void;
+}) {
+  const [word, setWord] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <Shell>
+      <div className="flex items-center justify-center gap-2.5">
+        <Star />
+        <span className="font-anton text-lg tracking-[0.18em]">VIP ONLY</span>
+        <Star />
+      </div>
+
+      <form
+        className="flex rotate-1 flex-col gap-4 bg-paper px-5 pt-5 pb-6 text-ink hard-shadow-lg"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!word.trim()) return;
+          setError(null);
+          startTransition(async () => {
+            const r = await checkMagicWord(challenge, word);
+            if (r.ok) onPass(r.guest, r.token);
+            else if (r.expired) onBack();
+            else {
+              setWord("");
+              setError("Nope. That's not it.");
+            }
+          });
+        }}
+      >
+        <div className="h-3 w-14 self-center rounded-md bg-ink" aria-hidden="true" />
+        <h1 className="flex flex-col font-anton text-[52px] leading-[0.9]">
+          <span>WHAT IS YOUR</span>
+          <span>MAGIC WORD?</span>
+        </h1>
+        <Marker className="text-xl">This name needs a password.</Marker>
+        <label htmlFor="magic-word" className="font-anton text-sm tracking-[0.16em]">
+          MAGIC WORD
+        </label>
+        <input
+          id="magic-word"
+          name="magic-word"
+          type="password"
+          value={word}
+          onChange={(e) => setWord(e.target.value)}
+          placeholder="Say the magic word"
+          autoComplete="off"
+          autoFocus
+          enterKeyHint="go"
+          maxLength={80}
+          className={`${inputLight} -mt-2`}
+        />
+        {error && (
+          <p role="alert" className="-mt-1 font-marker text-lg">
+            {error}
+          </p>
+        )}
+        <button type="submit" disabled={pending || !word.trim()} className="flex min-h-14 items-center justify-center bg-ink font-anton text-2xl tracking-[0.12em] text-paper disabled:opacity-60">
+          {pending ? "CHECKING…" : "OPEN SESAME"}
+        </button>
+      </form>
+
+      <button type="button" onClick={onBack} className="mt-auto min-h-11 text-center text-sm font-semibold text-smoke underline underline-offset-4">
+        Not you? Go back
+      </button>
     </Shell>
   );
 }

@@ -27,6 +27,10 @@ export function getGuest(id: string): Guest | null {
   return guests.find((g) => g.id === id) ?? null;
 }
 
+export function hostGuest(): Guest | null {
+  return guests.find((g) => g.isHost) ?? null;
+}
+
 export function allGuests(): Guest[] {
   return guests;
 }
@@ -44,12 +48,15 @@ export function toPublicGuest(g: Guest): PublicGuest {
 /**
  * Animal faces already in the crowd, so each one is only used once.
  * Leaves out `exceptGuestId`'s own +1 so they can keep their pick.
+ * Pass every RSVP (host included) so the host's +1 counts too.
  */
 export function takenAnimals(rsvps: Rsvp[], exceptGuestId: string): AnimalId[] {
   const taken = new Set<AnimalId>();
   if (!event.crowd.hostPhoto) taken.add(event.crowd.hostAnimal);
+  // The +1 in event.ts only shows until the host RSVPs (then their RSVP's +1 is used).
   const hostPlusOne = event.crowd.plusOne;
-  if (hostPlusOne && !hostPlusOne.photo) taken.add(hostPlusOne.animal);
+  const hostAnswered = rsvps.some((r) => getGuest(r.guestId)?.isHost);
+  if (hostPlusOne && !hostPlusOne.photo && !hostAnswered) taken.add(hostPlusOne.animal);
   for (const r of rsvps) {
     if (r.status === "no") continue;
     const g = getGuest(r.guestId);

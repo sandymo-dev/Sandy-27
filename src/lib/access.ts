@@ -1,6 +1,8 @@
 import "server-only";
 import { redirect } from "next/navigation";
-import { getGuest } from "@/lib/guests";
+import type { AnimalId } from "@/components/animals";
+import { event } from "@/data/event";
+import { getGuest, hostGuest } from "@/lib/guests";
 import { getSessionGuestId } from "@/lib/session";
 import { getRsvp } from "@/lib/store";
 import type { Guest, Rsvp, RsvpStatus } from "@/lib/types";
@@ -31,4 +33,20 @@ export async function requireGuest(): Promise<{ guest: Guest; rsvp: Rsvp | null 
   const me = await currentGuest();
   if (!me) redirect("/");
   return me;
+}
+
+/**
+ * The host's +1, drawn as an angel next to them in the crowd.
+ * Comes from the host's own RSVP; falls back to event.ts until they RSVP.
+ */
+export async function hostPlusOne(): Promise<{ name: string; photo: string | null; animal: AnimalId } | null> {
+  const host = hostGuest();
+  const r = host ? await getRsvp(host.id) : null;
+  if (!r) return event.crowd.plusOne;
+  if (r.status !== "yes" || !r.plusOne) return null;
+  return {
+    name: r.plusOneName ?? `${event.host.name}+1`,
+    photo: r.plusOneAnimal ? null : r.plusOnePhotoUrl,
+    animal: r.plusOneAnimal ?? "cat",
+  };
 }
