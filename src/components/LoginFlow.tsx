@@ -260,9 +260,14 @@ function MatchScreen({
           )}
         </div>
 
-        {/* The stickman pops up from the bottom of the screen with their face as the head. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[430px] overflow-hidden" aria-hidden="true">
-          <div className="stickman absolute inset-x-0 -bottom-10 flex flex-col items-center">
+        {/* The stickman pops up from the bottom of the screen with their face as the head.
+            It sits in the flow (filling the space below the buttons) so it can never cover them;
+            on short viewports it shrinks, and if there's still not enough room the page scrolls. */}
+        <div
+          className="pointer-events-none relative -mx-6 -mb-10 min-h-[370px] flex-1 overflow-hidden [@media(max-height:760px)]:min-h-[300px]"
+          aria-hidden="true"
+        >
+          <div className="stickman absolute inset-x-0 -bottom-10 flex origin-bottom flex-col items-center [@media(max-height:760px)]:scale-[0.8]">
             <div className="relative z-10">
               <Head photo={guest.photo} animal={guest.animal} size={176} border={6} bare={!!guest.photo} alt="" />
             </div>
